@@ -13,7 +13,7 @@ public class Plane {
     public Plane() {
         paint = new Paint();
         paint.setColor(Color.argb(255, 0, 0, 0)); // Set plane color
-        size = 20; // Set default size
+        size = 50; // Set default size
     }
 
     public void draw(Canvas canvas) {

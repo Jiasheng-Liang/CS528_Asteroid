@@ -32,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     class AsteroidView extends SurfaceView implements Runnable {
+        int score = 0;
         Thread gameThread = null;
         SurfaceHolder ourHolder;
         volatile boolean playing;
@@ -39,7 +40,10 @@ public class MainActivity extends AppCompatActivity {
         Canvas canvas;
         Paint paint;
         Plane plane;
+        boulder[] b = new boulder[10];
         List<Bullet> bullets = new ArrayList<>();
+        boolean[] boulderCollisions = new boolean[b.length];
+
 
         DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
         int screenWidth = displayMetrics.widthPixels;
@@ -50,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
         int posx, posy;
         int dx, dy;
         int height, width;
-        boulder[] b;
+
 
         private long thisTimeFrame;
         public AsteroidView(Context context) {
@@ -63,11 +67,11 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
             Random r = new Random();
-            b = new boulder[5];
+
             plane = new Plane();
             // Set initial plane position, e.g., middle of the screen
-            plane.x = screenWidth / 2;
-            plane.y = screenHeight / 2;
+            plane.x = (float) screenWidth / 2;
+            plane.y = (float) screenHeight *9 / 10;
 
             posx = 50;
             posy = 50;
@@ -82,35 +86,44 @@ public class MainActivity extends AppCompatActivity {
                 b[i].diameter = 20;
             }
 
-
             while (playing)
             {
                 if (!paused) {
-                    update();
+                    try {
+                        update();
+                    } catch (Exception e) {
+                        // Handle the exception (e.g., log the error)
+                        e.printStackTrace();
+                    }
                 }
-                draw();
+                try {
+                    draw();
+                } catch (Exception e) {
+                    // Handle the exception (e.g., log the error)
+                    e.printStackTrace();
+                }
                 try {
                     Thread.sleep(50);
                 } catch (InterruptedException e) {
-
+                    // Handle the exception (e.g., log the error)
+                    e.printStackTrace();
                 }
             }
         }
 
         private boolean bulletCollidesWithBoulder(Bullet bullet, boulder b) {
-            // Find the closest point on the bullet rectangle to the center of the boulder
-            float closestX = clamp(b.x, bullet.x - 5, bullet.x + 5); // Assuming bullet's width is 10
-            float closestY = clamp(b.y, bullet.y - 10, bullet.y); // Assuming bullet's height is 10
+            // Calculate the distance between the centers of the bullet and the boulder
+            float distanceX = b.x - bullet.x;
+            float distanceY = b.y - bullet.y;
 
-            // Calculate the distance between the boulder's center and this closest point
-            float distanceX = b.x - closestX;
-            float distanceY = b.y - closestY;
+            // Calculate the combined radii of the bullet and the boulder
+            float combinedRadius = bullet.radius + b.diameter / 2; // Assuming b.diameter represents the full diameter of the boulder
 
-            // Distance formula
+            // Use Pythagoras' theorem to calculate the distance
             float distance = (float) Math.sqrt((distanceX * distanceX) + (distanceY * distanceY));
 
-            // If the distance is less than the radius, collision detected
-            return distance < b.diameter / 2; // Assuming b.diameter represents the full diameter of the boulder
+            // If the distance is less than the combined radii, collision detected
+            return distance < combinedRadius;
         }
 
         // Utility method to clamp value between min and max
@@ -119,16 +132,25 @@ public class MainActivity extends AppCompatActivity {
         }
 
         public void update() {
+            // Initialize boulder collisions flags
+            Arrays.fill(boulderCollisions, false);
+
             // Update bullet positions
-            Iterator<Bullet> bulletIterator = bullets.iterator(); // Assuming 'bullets' is a List<Bullet>
+            Iterator<Bullet> bulletIterator = bullets.iterator();
             while (bulletIterator.hasNext()) {
                 Bullet bullet = bulletIterator.next();
                 bullet.update(); // Update bullet position
 
+                // Check if the bullet reaches the top of the screen
+                if (bullet.y < 0) {
+                    bulletIterator.remove();
+                    score++; // Increment the score
+                }
+
                 // Check for collision with boulders
                 for (int i = 0; i < b.length; i++) {
-                    if (b[i] != null && bulletCollidesWithBoulder(bullet, b[i])) {
-                        b[i] = null; // Remove the boulder
+                    if (b[i] != null && !boulderCollisions[i] && bulletCollidesWithBoulder(bullet, b[i])) {
+                        boulderCollisions[i] = true; // Set the collision flag for this boulder
                         bulletIterator.remove(); // Remove the bullet
                         break; // Stop checking this bullet against other boulders
                     }
@@ -149,6 +171,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
+
+
         public void draw() {
             if (ourHolder.getSurface().isValid()) {
                 // Lock the canvas ready to draw
@@ -160,31 +184,32 @@ public class MainActivity extends AppCompatActivity {
                 // Draw the background color
                 canvas.drawColor(Color.argb(255, 26, 128, 182));
 
-
-                canvas.drawCircle(plane.x, plane.y, 50, paint);
-
                 // Draw the plane
                 plane.draw(canvas); // Assuming 'plane' is an instance of Plane
 
                 // Draw the bullets
-                for (Bullet bullet : bullets) { // Assuming 'bullets' is a List<Bullet>
+                for (Bullet bullet : bullets) {
                     bullet.draw(canvas);
                 }
 
-
-
                 // Draw each boulder
                 for (int i = 0; i < b.length; ++i) {
-                    b[i].width = width;
-                    b[i].height = height;
-                    b[i].draw(canvas); // Updated to pass only the canvas
+                    if (!boulderCollisions[i]) {
+                        b[i].width = width;
+                        b[i].height = height;
+                        b[i].draw(canvas);
+                    }
                 }
 
-                // canvas.drawCircle(b.x, b.y, 50, paint);
+                // Draw the current score on the screen
+                paint.setColor(Color.WHITE);
+                paint.setTextSize(48);
+                canvas.drawText("Score: " + score, 20, 50, paint);
 
                 ourHolder.unlockCanvasAndPost(canvas);
             }
         }
+
 
         public void pause() {
             playing = false;
@@ -206,9 +231,6 @@ public class MainActivity extends AppCompatActivity {
         public boolean onTouchEvent(MotionEvent motionEvent) {
             switch (motionEvent.getAction()) {
                 case MotionEvent.ACTION_DOWN:
-                    // This can still toggle pause, or you could use a separate button or area of the screen for pausing
-                    paused = !paused;
-
                     // Shoot a bullet from the plane's position
                     // Ensure this doesn't conflict with your pause functionality
                     float bulletStartX = plane.x; // The center of the plane
@@ -219,6 +241,7 @@ public class MainActivity extends AppCompatActivity {
             }
             return super.onTouchEvent(motionEvent);
         }
+
 
     }
 
