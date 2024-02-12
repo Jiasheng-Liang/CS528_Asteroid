@@ -12,6 +12,8 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -26,13 +28,33 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // setContentView(R.layout.activity_main);
+
+        // Create a LinearLayout to hold both the AsteroidView and the TextView
+        LinearLayout linearLayout = new LinearLayout(this);
+        linearLayout.setOrientation(LinearLayout.VERTICAL); // Set orientation to vertical
+
+        // Create a TextView and set its text
+        TextView textView = new TextView(this);
+        textView.setText("Lvl. 1");
+        textView.setTextSize(24);
+
+        // Add the TextView and AsteroidView to the LinearLayout
+        linearLayout.addView(textView);
+
+        // Create an instance of AsteroidView and set it as the content view
         asteroidView = new AsteroidView(this);
-        setContentView(asteroidView);
+        linearLayout.addView(asteroidView);
+
+        // Set the LinearLayout as the content view
+        setContentView(linearLayout);
     }
 
     class AsteroidView extends SurfaceView implements Runnable {
         int score = 0;
+        private int currentLevel = 1;
+        private int maxBullets = 10; // Maximum number of bullets for the first level
+        private int currentBullets = 0; // Counter for the current number of bullets
+
         Thread gameThread = null;
         SurfaceHolder ourHolder;
         volatile boolean playing;
@@ -231,16 +253,20 @@ public class MainActivity extends AppCompatActivity {
         public boolean onTouchEvent(MotionEvent motionEvent) {
             switch (motionEvent.getAction()) {
                 case MotionEvent.ACTION_DOWN:
-                    // Shoot a bullet from the plane's position
-                    // Ensure this doesn't conflict with your pause functionality
-                    float bulletStartX = plane.x; // The center of the plane
-                    float bulletStartY = plane.y; // Adjust as needed, maybe the front of the plane
-                    Bullet newBullet = new Bullet(bulletStartX, bulletStartY);
-                    bullets.add(newBullet);
+                    // Check if the current level is the first level and if the maximum number of bullets has been reached
+                    if (currentLevel == 1 && currentBullets < maxBullets) {
+                        // Shoot a bullet from the plane's position
+                        float bulletStartX = plane.x; // The center of the plane
+                        float bulletStartY = plane.y; // Adjust as needed, maybe the front of the plane
+                        Bullet newBullet = new Bullet(bulletStartX, bulletStartY);
+                        bullets.add(newBullet);
+                        currentBullets++; // Update currentBullets count
+                    }
                     return true;
             }
             return super.onTouchEvent(motionEvent);
         }
+
 
 
     }
