@@ -11,7 +11,7 @@ class Bullet {
     public Bullet(float startX, float startY) {
         x = startX;
         y = startY;
-        radius = 5;
+        radius = 10;
         speed = 20; // Adjust speed as necessary
         paint = new Paint();
         paint.setColor(Color.argb(255, 255, 0, 0)); // Bullet color
