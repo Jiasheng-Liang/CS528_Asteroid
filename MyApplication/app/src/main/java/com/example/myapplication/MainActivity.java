@@ -1,6 +1,7 @@
 package com.example.myapplication;
 
 //import android.support.v7.app.AppCompatActivity;
+import android.app.Activity;
 import android.os.Bundle;
 import android.content.Context;
 import android.graphics.Canvas;
@@ -24,6 +25,7 @@ import java.util.Random;
 public class MainActivity extends AppCompatActivity {
 
     AsteroidView asteroidView;
+    private TextView levelTextView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,12 +36,16 @@ public class MainActivity extends AppCompatActivity {
         linearLayout.setOrientation(LinearLayout.VERTICAL); // Set orientation to vertical
 
         // Create a TextView and set its text
-        TextView textView = new TextView(this);
-        textView.setText("Lvl. 1");
-        textView.setTextSize(24);
+        levelTextView = new TextView(this);
+        levelTextView.setText("Lvl. 1");
+        levelTextView.setTextSize(24);
+        // Optionally, you can set an ID if you need to reference it later
+        // levelTextView.setId(View.generateViewId());
+        // Add the TextView to the LinearLayout
+        linearLayout.addView(levelTextView);
 
-        // Add the TextView and AsteroidView to the LinearLayout
-        linearLayout.addView(textView);
+        // Set the LinearLayout as the content view
+        setContentView(linearLayout);
 
         // Create an instance of AsteroidView and set it as the content view
         asteroidView = new AsteroidView(this);
@@ -49,11 +55,16 @@ public class MainActivity extends AppCompatActivity {
         setContentView(linearLayout);
     }
 
+
     class AsteroidView extends SurfaceView implements Runnable {
         int score = 0;
+
+        bullets.clear();
         private int currentLevel = 1;
         private int maxBullets = 10; // Maximum number of bullets for the first level
         private int currentBullets = 0; // Counter for the current number of bullets
+        private int[] scoreThresholds = {3, 6, 9}; // Example score thresholds for advancing to the next level
+
 
         Thread gameThread = null;
         SurfaceHolder ourHolder;
@@ -86,6 +97,91 @@ public class MainActivity extends AppCompatActivity {
             paint = new Paint();
         }
 
+        private void updateLevelLabel() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Log.d("UIUpdate", "Updating level label to Lvl. " + currentLevel);
+                    if (levelTextView != null) {
+                        levelTextView.setText("Lvl. " + currentLevel);
+                    } else {
+                        Log.e("UIUpdate", "levelTextView is null");
+                    }
+                }
+            });
+        }
+
+        private void adjustDifficulty() {
+            // Adjust game parameters based on the current level
+            // For example, increase the number of boulders and their speed
+            int boulderSpeedIncrement = 2; // Example speed increment for each level
+            int boulderCountIncrement = 2; // Example count increment for each level
+            int maxBulletsIncrement = 5; // Example increment in maximum bullets for each level
+            currentLevel++;
+            score = 0;
+
+            // Increase boulder speed
+            for (boulder boulder : b) {
+                boulder.dx += boulderSpeedIncrement; // Adjust the horizontal speed
+                boulder.dy += boulderSpeedIncrement; // Adjust the vertical speed
+            }
+
+            // Increase the number of boulders
+            int bouldersToAdd = boulderCountIncrement * currentLevel;
+            for (int i = 0; i < bouldersToAdd; i++) {
+                // Add new boulders to the array
+                if (i < b.length) {
+                    b[i] = new boulder();
+                    // Set initial position and speed of the new boulder
+                    b[i].x = 50 + (i * 150); // Example: Set x position with spacing between boulders
+                    b[i].y = 50; // Example: Set y position
+                    b[i].dx = 10; // Example: Set horizontal speed
+                    b[i].dy = 10; // Example: Set vertical speed
+                    b[i].diameter = 20; // Example: Set diameter
+                } else {
+                    // Expand the array if needed
+                    int newSize = b.length + 1; // Increase the size by 1
+                    boulder[] newBoulders = new boulder[newSize]; // Create a new array with increased size
+                    // Copy existing boulders to the new array
+                    System.arraycopy(b, 0, newBoulders, 0, b.length);
+                    // Add the new boulder to the end of the array
+                    newBoulders[newSize - 1] = new boulder();
+                    // Set initial position and speed of the new boulder
+                    newBoulders[newSize - 1].x = 50 + (i * 150); // Example: Set x position with spacing between boulders
+                    newBoulders[newSize - 1].y = 50; // Example: Set y position
+                    newBoulders[newSize - 1].dx = 10; // Example: Set horizontal speed
+                    newBoulders[newSize - 1].dy = 10; // Example: Set vertical speed
+                    newBoulders[newSize - 1].diameter = 20; // Example: Set diameter
+                    // Assign the new array back to the original array variable
+                    b = newBoulders;
+                }
+            }
+
+            // Update the maximum bullets for the current level
+            maxBullets += maxBulletsIncrement;
+
+            // Reset the current number of bullets for the new level
+            currentBullets = 0;
+
+            // Increment the current level
+
+
+            // Update the level label to reflect the new level
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (levelTextView != null) {
+                        levelTextView.setText("Lvl. " + currentLevel);
+                    }
+                }
+            });
+        }
+
+
+
+
+
+
         @Override
         public void run() {
             Random r = new Random();
@@ -93,7 +189,7 @@ public class MainActivity extends AppCompatActivity {
             plane = new Plane();
             // Set initial plane position, e.g., middle of the screen
             plane.x = (float) screenWidth / 2;
-            plane.y = (float) screenHeight *9 / 10;
+            plane.y = (float) screenHeight * 9 / 10;
 
             posx = 50;
             posy = 50;
@@ -108,8 +204,7 @@ public class MainActivity extends AppCompatActivity {
                 b[i].diameter = 20;
             }
 
-            while (playing)
-            {
+            while (playing) {
                 if (!paused) {
                     try {
                         update();
@@ -125,6 +220,12 @@ public class MainActivity extends AppCompatActivity {
                     e.printStackTrace();
                 }
                 try {
+                    // Check if the player has met the criteria to advance to the next level
+                    if (score >= scoreThresholds[currentLevel - 1]) {
+                        //currentLevel++; // Advance to the next level
+                        // Adjust game parameters for the next level (e.g., increase difficulty)
+                        adjustDifficulty();
+                    }
                     Thread.sleep(50);
                 } catch (InterruptedException e) {
                     // Handle the exception (e.g., log the error)
@@ -190,7 +291,18 @@ public class MainActivity extends AppCompatActivity {
                     b[i].update();
                 }
             }
+
+
+            // Check if the score meets or exceeds the threshold for the current level
+            if (currentLevel - 1 < scoreThresholds.length && score >= scoreThresholds[currentLevel - 1]) {
+
+                adjustDifficulty(); // Adjust game difficulty for the new level
+
+            }
+
         }
+
+
 
 
 
@@ -247,15 +359,15 @@ public class MainActivity extends AppCompatActivity {
             playing = true;
             gameThread = new Thread(this);
             gameThread.start();
+            Log.d("AsteroidView", "Game thread resumed"); // Add this log
         }
 
         @Override
         public boolean onTouchEvent(MotionEvent motionEvent) {
             switch (motionEvent.getAction()) {
                 case MotionEvent.ACTION_DOWN:
-                    // Check if the current level is the first level and if the maximum number of bullets has been reached
-                    if (currentLevel == 1 && currentBullets < maxBullets) {
-                        // Shoot a bullet from the plane's position
+                    // Shoot a bullet from the plane's position if the current number of bullets is less than maxBullets
+                    if (currentBullets < maxBullets) {
                         float bulletStartX = plane.x; // The center of the plane
                         float bulletStartY = plane.y; // Adjust as needed, maybe the front of the plane
                         Bullet newBullet = new Bullet(bulletStartX, bulletStartY);
@@ -266,6 +378,7 @@ public class MainActivity extends AppCompatActivity {
             }
             return super.onTouchEvent(motionEvent);
         }
+
 
 
 
