@@ -58,12 +58,10 @@ public class MainActivity extends AppCompatActivity {
 
     class AsteroidView extends SurfaceView implements Runnable {
         int score = 0;
-
-        bullets.clear();
         private int currentLevel = 1;
         private int maxBullets = 10; // Maximum number of bullets for the first level
         private int currentBullets = 0; // Counter for the current number of bullets
-        private int[] scoreThresholds = {3, 6, 9}; // Example score thresholds for advancing to the next level
+        private int[] scoreThresholds = {7, 10, 15,21}; // Example score thresholds for advancing to the next level
 
 
         Thread gameThread = null;
@@ -97,6 +95,10 @@ public class MainActivity extends AppCompatActivity {
             paint = new Paint();
         }
 
+        public void clearBullets() {
+            bullets.clear();
+        }
+
         private void updateLevelLabel() {
             runOnUiThread(new Runnable() {
                 @Override
@@ -119,6 +121,7 @@ public class MainActivity extends AppCompatActivity {
             int maxBulletsIncrement = 5; // Example increment in maximum bullets for each level
             currentLevel++;
             score = 0;
+            bullets.clear();
 
             // Increase boulder speed
             for (boulder boulder : b) {
