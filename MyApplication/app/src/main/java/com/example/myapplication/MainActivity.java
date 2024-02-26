@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
         private int currentLevel = 1;
         private int maxBullets = 10; // Maximum number of bullets for the first level
         private int currentBullets = 0; // Counter for the current number of bullets
-        private int[] scoreThresholds = {7, 10, 15,21}; // Example score thresholds for advancing to the next level
+        private int[] scoreThresholds = {5, 8, 12,17}; // Example score thresholds for advancing to the next level
 
 
         Thread gameThread = null;
@@ -118,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
             // For example, increase the number of boulders and their speed
             int boulderSpeedIncrement = 2; // Example speed increment for each level
             int boulderCountIncrement = 2; // Example count increment for each level
-            int maxBulletsIncrement = 5; // Example increment in maximum bullets for each level
+            int maxBulletsIncrement = 3; // Example increment in maximum bullets for each level
             currentLevel++;
             score = 0;
             bullets.clear();
